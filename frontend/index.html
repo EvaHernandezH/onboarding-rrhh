@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding RRHH</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <img src="logo.png" alt="Logo Empresa" id="companyLogo" style="max-height: 45px; margin-right: 10px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="fa-solid fa-users-gear" style="display: none;"></i>
+            </div>
+            <nav class="menu">
+                <a href="#" class="menu-item active" id="menu-tablero" onclick="switchView('tablero')">
+                    <i class="fa-solid fa-table-columns"></i>
+                    Tablero Principal
+                </a>
+                <a href="#" class="menu-item" id="menu-reportes" onclick="switchView('reportes')">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    Reportes Gráficos
+                </a>
+                <a href="#" class="menu-item" onclick="downloadExcel()">
+                    <i class="fa-solid fa-file-excel"></i>
+                    Descargar Excel
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-info">
+                    <h1>Control de Ingreso de Personal</h1>
+                    <p>Gestiona el flujo de candidatos desde la convocatoria hasta la contratación.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-primary" onclick="openModal()">
+                        <i class="fa-solid fa-plus"></i> Nuevo Candidato
+                    </button>
+                </div>
+            </header>
+
+            <!-- Contenedor del Tablero Principal -->
+            <div id="view-tablero">
+                <!-- KPI Cards -->
+                <div class="kpi-cards">
+                <div class="kpi-card">
+                    <div class="kpi-icon blue"><i class="fa-solid fa-bullhorn"></i></div>
+                    <div class="kpi-info">
+                        <h3>Convocatoria</h3>
+                        <h2 id="kpi-convocatoria">0</h2>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon yellow"><i class="fa-solid fa-chalkboard-user"></i></div>
+                    <div class="kpi-info">
+                        <h3>En Capacitación</h3>
+                        <h2 id="kpi-capacitacion">0</h2>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon green"><i class="fa-solid fa-handshake-angle"></i></div>
+                    <div class="kpi-info">
+                        <h3>Contratados</h3>
+                        <h2 id="kpi-contratado">0</h2>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon red" style="background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-ban"></i></div>
+                    <div class="kpi-info">
+                        <h3>Rechazados</h3>
+                        <h2 id="kpi-rechazado">0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="table-container glass-panel">
+                <div class="table-header">
+                    <h2>Lista de Postulantes</h2>
+                    <div class="table-filters">
+                        <select id="filter-estado" onchange="loadCandidatos()">
+                            <option value="">Todos los Estados</option>
+                            <option value="CONVOCATORIA">Convocatoria</option>
+                            <option value="CAPACITACION 1">Capacitación 1</option>
+                            <option value="CAPACITACION 2">Capacitación 2</option>
+                            <option value="CAPACITACION 3">Capacitación 3</option>
+                            <option value="CONTRATADO">Contratado</option>
+                            <option value="RECHAZADO">Rechazado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="candidatosTable">
+                        <thead>
+                            <tr>
+                                <th>Postulante</th>
+                                <th>Sede / Fuente</th>
+                                <th>Estado Actual</th>
+                                <th>Sub Estado</th>
+                                <th>Prueba Manejo / Cond.</th>
+                                <th>Responsable</th>
+                                <th>Fecha Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidatosBody">
+                            <!-- Datos inyectados por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            </div> <!-- Fin view-tablero -->
+
+            <!-- Contenedor de Reportes Gráficos -->
+            <div id="view-reportes" style="display: none;">
+                <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+                    <h2>Análisis Estadístico</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Visualiza el progreso de los postulantes por mes de registro o actualización.</p>
+                    
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <label style="font-weight: 500;">Filtrar por Mes:</label>
+                        <select id="reportMonth" onchange="renderCharts()" style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--border-color); outline: none;">
+                            <option value="all">Todos los meses</option>
+                            <!-- Se inyecta con JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <div class="glass-panel" style="padding: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem; text-align: center;">Distribución de Estados</h3>
+                        <canvas id="estadoChart"></canvas>
+                    </div>
+                    <div class="glass-panel" style="padding: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem; text-align: center;">Embudo de Contratación</h3>
+                        <canvas id="funnelChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Form -->
+    <div class="modal-overlay" id="modalForm">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nuevo Candidato</h2>
+                <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="candidatoForm" onsubmit="saveCandidato(event)">
+                <input type="hidden" id="candidatoId">
+                
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Datos del Postulante (Nombres, Apellidos, DNI)</label>
+                        <input type="text" id="datos_postulante" required placeholder="Ej: Juan Perez - 12345678">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fuente</label>
+                        <select id="fuente">
+                            <option value="MINTRA">MINTRA</option>
+                            <option value="REFERIDO">Referido</option>
+                            <option value="REDES">Redes Sociales</option>
+                            <option value="OTROS">Otros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sede</label>
+                        <select id="sede">
+                            <option value="LIMA">LIMA</option>
+                            <option value="TRUJILLO">TRUJILLO</option>
+                            <option value="CHICLAYO">CHICLAYO</option>
+                            <option value="PIURA">PIURA</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Condición</label>
+                        <select id="condicion">
+                            <option value="T1">T1</option>
+                            <option value="T2">T2</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Prueba de Manejo</label>
+                        <select id="prueba_manejo">
+                            <option value="Requiere">Requiere</option>
+                            <option value="No requiere">No requiere</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width separator-title">
+                        <h3>Estado Actual del Proceso</h3>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="estado" required onchange="updateSubestados()">
+                            <option value="CONVOCATORIA">CONVOCATORIA</option>
+                            <option value="CAPACITACION 1">CAPACITACION 1</option>
+                            <option value="CAPACITACION 2">CAPACITACION 2</option>
+                            <option value="CAPACITACION 3">CAPACITACION 3</option>
+                            <option value="CONTRATADO">CONTRATADO</option>
+                            <option value="RECHAZADO">RECHAZADO</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sub Estado</label>
+                        <select id="sub_estado">
+                            <option value="Asistió">Asistió</option>
+                            <option value="No asistió">No asistió</option>
+                            <option value="Reprogramó">Reprogramó</option>
+                            <option value="No le gusta propuesta">No le gusta propuesta</option>
+                            <option value="Temas de religión">Temas de religión</option>
+                            <option value="Pendiente">Pendiente</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Responsable</label>
+                        <input type="text" id="responsable" placeholder="Ej: Analista RRHH">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fecha de Estado</label>
+                        <input type="date" id="fecha_estado" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Observación</label>
+                        <textarea id="observacion" rows="3" placeholder="Comentarios adicionales..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Historial -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Historial de Estados</h2>
+                <button class="close-btn" onclick="closeHistoryModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="historyContainer" style="padding: 1.5rem;">
+                <!-- timeline content -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
