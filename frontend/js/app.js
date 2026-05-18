@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = window.location.hostname === 'localhost' || window.location.protocol === 'file:' ? 'http://localhost:3000/api' : '/api';
 
 // Elementos del DOM
 const modalForm = document.getElementById('modalForm');
@@ -201,9 +201,12 @@ async function deleteCandidato(id) {
             });
             if (response.ok) {
                 loadCandidatos();
+            } else {
+                alert('Error al intentar eliminar el registro. Inténtalo nuevamente.');
             }
         } catch (error) {
             console.error('Error al eliminar:', error);
+            alert('Error de conexión. Verifica que el servidor backend esté encendido.');
         }
     }
 }
