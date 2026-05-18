@@ -13,18 +13,25 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Obtener todos los candidatos
-app.get('/api/candidatos', (req, res) => {
-    db.all('SELECT * FROM candidatos ORDER BY id DESC', [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ data: rows });
-    });
+app.get('/api/candidatos', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM candidatos ORDER BY id DESC');
+        // Formatear fechas devueltas por MySQL para evitar conflictos de zona horaria
+        const formattedRows = rows.map(r => {
+            if (r.fecha_estado) {
+                const dateObj = new Date(r.fecha_estado);
+                r.fecha_estado = dateObj.toISOString().split('T')[0];
+            }
+            return r;
+        });
+        res.json({ data: formattedRows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Crear un nuevo candidato
-app.post('/api/candidatos', (req, res) => {
+app.post('/api/candidatos', async (req, res) => {
     const { 
         datos_postulante, fuente, sede, condicion, 
         prueba_manejo, estado, sub_estado, 
@@ -43,28 +50,23 @@ app.post('/api/candidatos', (req, res) => {
         fecha_estado, responsable, observacion
     ];
 
-    db.run(sql, params, function(err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
-        const nuevoId = this.lastID;
+    try {
+        const [result] = await db.query(sql, params);
+        const nuevoId = result.insertId;
         
-        db.run(`INSERT INTO historial_candidatos 
+        await db.query(`INSERT INTO historial_candidatos 
             (candidato_id, estado, sub_estado, responsable, observacion, fecha_estado) 
             VALUES (?, ?, ?, ?, ?, ?)`, 
-            [nuevoId, estado, sub_estado, responsable, observacion, fecha_estado], 
-            (err2) => {
-                res.json({
-                    message: 'success',
-                    id: nuevoId
-                });
-        });
-    });
+            [nuevoId, estado, sub_estado, responsable, observacion, fecha_estado]);
+            
+        res.json({ message: 'success', id: nuevoId });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // Actualizar un candidato (ej. cambio de estado)
-app.put('/api/candidatos/:id', (req, res) => {
+app.put('/api/candidatos/:id', async (req, res) => {
     const { 
         datos_postulante, fuente, sede, condicion, 
         prueba_manejo, estado, sub_estado, 
@@ -83,46 +85,46 @@ app.put('/api/candidatos/:id', (req, res) => {
         fecha_estado, responsable, observacion, req.params.id
     ];
 
-    db.run(sql, params, function(err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
+    try {
+        const [result] = await db.query(sql, params);
         
-        db.run(`INSERT INTO historial_candidatos 
+        await db.query(`INSERT INTO historial_candidatos 
             (candidato_id, estado, sub_estado, responsable, observacion, fecha_estado) 
             VALUES (?, ?, ?, ?, ?, ?)`, 
-            [req.params.id, estado, sub_estado, responsable, observacion, fecha_estado], 
-            (err2) => {
-                res.json({
-                    message: 'success',
-                    changes: this.changes
-                });
-        });
-    });
+            [req.params.id, estado, sub_estado, responsable, observacion, fecha_estado]);
+            
+        res.json({ message: 'success', changes: result.affectedRows });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // Eliminar un candidato
-app.delete('/api/candidatos/:id', (req, res) => {
-    db.run('DELETE FROM candidatos WHERE id = ?', req.params.id, function(err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
-        }
-        db.run('DELETE FROM historial_candidatos WHERE candidato_id = ?', req.params.id);
-        res.json({ message: 'deleted', changes: this.changes });
-    });
+app.delete('/api/candidatos/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM historial_candidatos WHERE candidato_id = ?', [req.params.id]);
+        const [result] = await db.query('DELETE FROM candidatos WHERE id = ?', [req.params.id]);
+        res.json({ message: 'deleted', changes: result.affectedRows });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // Obtener historial de un candidato
-app.get('/api/candidatos/:id/historial', (req, res) => {
-    db.all('SELECT * FROM historial_candidatos WHERE candidato_id = ? ORDER BY id DESC', [req.params.id], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ data: rows });
-    });
+app.get('/api/candidatos/:id/historial', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM historial_candidatos WHERE candidato_id = ? ORDER BY id DESC', [req.params.id]);
+        const formattedRows = rows.map(r => {
+            if (r.fecha_estado) {
+                const dateObj = new Date(r.fecha_estado);
+                r.fecha_estado = dateObj.toISOString().split('T')[0];
+            }
+            return r;
+        });
+        res.json({ data: formattedRows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(port, () => {
